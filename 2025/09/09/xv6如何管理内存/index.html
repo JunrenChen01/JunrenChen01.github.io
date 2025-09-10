@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang=zh>
+<head>
+    <!-- so meta -->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="HandheldFriendly" content="True">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
+    <meta name="description" content="虚拟内存介绍虚拟内存技术，相信学过计算机专业的人都不陌生。简单来讲，它就是将虚拟地址映射到实际的物理地址。使用虚拟内存有许多好处，例如它能够让每个用户进程都感觉自己拥有整一块物理内存（每个进程实现了隔离）、使用虚拟内存的间接映射可以实现懒分配、写时复制功能等等。 在xv6中，启用了虚拟内存机制，它使用RISC-V的Sv39模式，即使用三级索引，具体转化的细节见下图1所示。从图中可以看到，一个虚拟地">
+<meta property="og:type" content="article">
+<meta property="og:title" content="xv6如何管理内存">
+<meta property="og:url" content="https://junrenchen01.github.io/JunrenChen01.github.io/2025/09/09/xv6%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%86%85%E5%AD%98/index.html">
+<meta property="og:site_name" content="安卓猫的安卓博客">
+<meta property="og:description" content="虚拟内存介绍虚拟内存技术，相信学过计算机专业的人都不陌生。简单来讲，它就是将虚拟地址映射到实际的物理地址。使用虚拟内存有许多好处，例如它能够让每个用户进程都感觉自己拥有整一块物理内存（每个进程实现了隔离）、使用虚拟内存的间接映射可以实现懒分配、写时复制功能等等。 在xv6中，启用了虚拟内存机制，它使用RISC-V的Sv39模式，即使用三级索引，具体转化的细节见下图1所示。从图中可以看到，一个虚拟地">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://junrenchen01.github.io/JunrenChen01.github.io/2025/09/09/xv6%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%86%85%E5%AD%98/photo1.png">
+<meta property="og:image" content="https://junrenchen01.github.io/JunrenChen01.github.io/2025/09/09/xv6%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%86%85%E5%AD%98/codeAnal1.png">
+<meta property="article:published_time" content="2025-09-09T09:05:12.000Z">
+<meta property="article:modified_time" content="2025-09-10T12:44:43.432Z">
+<meta property="article:author" content="kenny">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://junrenchen01.github.io/JunrenChen01.github.io/2025/09/09/xv6%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%86%85%E5%AD%98/photo1.png">
+    
+    
+      
+        
+          <link rel="shortcut icon" href="/JunrenChen01.github.io/images/favicon.ico">
+        
+      
+      
+        
+          <link rel="icon" type="image/png" href="/JunrenChen01.github.io/images/favicon-192x192.png" sizes="192x192">
+        
+      
+      
+        
+          <link rel="apple-touch-icon" sizes="180x180" href="/JunrenChen01.github.io/images/apple-touch-icon.png">
+        
+      
+    
+    <!-- title -->
+    <title>xv6如何管理内存</title>
+    <!-- async scripts -->
+    <!-- Google Analytics -->
+
+
+    <!-- Umami Analytics -->
+
+
+    <!-- styles -->
+    
+<link rel="stylesheet" href="/JunrenChen01.github.io/css/style.css">
+
+    <!-- persian styles -->
+    
+    <!-- rss -->
+    
+    
+	<!-- mathjax -->
+	
+<!-- hexo injector head_end start -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/katex.min.css">
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/hexo-math@4.0.0/dist/style.css">
+<!-- hexo injector head_end end --><meta name="generator" content="Hexo 7.3.0"></head>
+
+<body class="max-width mx-auto px3 ltr">
+    
+      <div id="header-post">
+  <a id="menu-icon" href="#" aria-label="目录"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="menu-icon-tablet" href="#" aria-label="目录"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="top-icon-tablet" href="#" aria-label="顶部" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');" style="display:none;"><i class="fa-solid fa-chevron-up fa-lg"></i></a>
+  <span id="menu">
+    <span id="nav">
+      <ul>
+        <!--
+       --><li><a href="/JunrenChen01.github.io/">首页</a></li><!--
+     --><!--
+       --><li><a href="/JunrenChen01.github.io/about/">关于</a></li><!--
+     --><!--
+       --><li><a href="/JunrenChen01.github.io/archives/">归档</a></li><!--
+     --><!--
+       --><li><a href="/JunrenChen01.github.io/null">项目</a></li><!--
+     -->
+      </ul>
+    </span>
+    <br/>
+    <span id="actions">
+      <ul>
+        
+        
+        <li><a class="icon" aria-label="下一篇" href="/JunrenChen01.github.io/2025/09/09/xv6-%E9%A1%B9%E7%9B%AE%E4%BB%8B%E7%BB%8D/"><i class="fa-solid fa-chevron-right" aria-hidden="true" onmouseover="$('#i-next').toggle();" onmouseout="$('#i-next').toggle();"></i></a></li>
+        
+        <li><a class="icon" aria-label="返回顶部" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up" aria-hidden="true" onmouseover="$('#i-top').toggle();" onmouseout="$('#i-top').toggle();"></i></a></li>
+        <li><a class="icon" aria-label="分享文章" href="#"><i class="fa-solid fa-share-alt" aria-hidden="true" onmouseover="$('#i-share').toggle();" onmouseout="$('#i-share').toggle();" onclick="$('#share').toggle();return false;"></i></a></li>
+      </ul>
+      <span id="i-prev" class="info" style="display:none;">上一篇</span>
+      <span id="i-next" class="info" style="display:none;">下一篇</span>
+      <span id="i-top" class="info" style="display:none;">返回顶部</span>
+      <span id="i-share" class="info" style="display:none;">分享文章</span>
+    </span>
+    <br/>
+    <div id="share" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=https://junrenchen01.github.io/JunrenChen01.github.io/2025/09/09/xv6%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%86%85%E5%AD%98/"><i class="fab fa-facebook " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=https://junrenchen01.github.io/JunrenChen01.github.io/2025/09/09/xv6%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%86%85%E5%AD%98/&text=xv6如何管理内存"><i class="fab fa-twitter " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=https://junrenchen01.github.io/JunrenChen01.github.io/2025/09/09/xv6%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%86%85%E5%AD%98/&title=xv6如何管理内存"><i class="fab fa-linkedin " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=https://junrenchen01.github.io/JunrenChen01.github.io/2025/09/09/xv6%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%86%85%E5%AD%98/&is_video=false&description=xv6如何管理内存"><i class="fab fa-pinterest " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=xv6如何管理内存&body=Check out this article: https://junrenchen01.github.io/JunrenChen01.github.io/2025/09/09/xv6%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%86%85%E5%AD%98/"><i class="fa-solid fa-envelope " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=https://junrenchen01.github.io/JunrenChen01.github.io/2025/09/09/xv6%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%86%85%E5%AD%98/&title=xv6如何管理内存"><i class="fab fa-get-pocket " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=https://junrenchen01.github.io/JunrenChen01.github.io/2025/09/09/xv6%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%86%85%E5%AD%98/&title=xv6如何管理内存"><i class="fab fa-reddit " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=https://junrenchen01.github.io/JunrenChen01.github.io/2025/09/09/xv6%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%86%85%E5%AD%98/&title=xv6如何管理内存"><i class="fab fa-stumbleupon " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=https://junrenchen01.github.io/JunrenChen01.github.io/2025/09/09/xv6%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%86%85%E5%AD%98/&title=xv6如何管理内存"><i class="fab fa-digg " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=https://junrenchen01.github.io/JunrenChen01.github.io/2025/09/09/xv6%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%86%85%E5%AD%98/&name=xv6如何管理内存&description="><i class="fab fa-tumblr " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=https://junrenchen01.github.io/JunrenChen01.github.io/2025/09/09/xv6%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%86%85%E5%AD%98/&t=xv6如何管理内存"><i class="fab fa-hacker-news " aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+    
+    
+      <div id="toc">
+        <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E8%99%9A%E6%8B%9F%E5%86%85%E5%AD%98%E4%BB%8B%E7%BB%8D"><span class="toc-number">1.</span> <span class="toc-text">虚拟内存介绍</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90"><span class="toc-number">1.1.</span> <span class="toc-text">源码解析</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#xv6%E7%9A%84%E7%89%A9%E7%90%86%E5%86%85%E5%AD%98%E5%88%86%E9%85%8D"><span class="toc-number">2.</span> <span class="toc-text">xv6的物理内存分配</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#xv6%E7%9A%84%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86"><span class="toc-number">3.</span> <span class="toc-text">xv6的内存管理</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%86%85%E6%A0%B8%E5%B1%82%E9%9D%A2"><span class="toc-number">3.1.</span> <span class="toc-text">内核层面</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%94%A8%E6%88%B7%E7%BA%A7%E5%B1%82%E9%9D%A2"><span class="toc-number">3.2.</span> <span class="toc-text">用户级层面</span></a></li></ol></li></ol>
+      </div>
+    
+  </span>
+</div>
+
+    
+    <div class="content index py4 ">
+        
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
+  <header>
+    
+    <h1 class="posttitle p-name" itemprop="name headline">
+        xv6如何管理内存
+    </h1>
+
+
+
+    <div class="meta">
+      <span class="author p-author h-card" itemprop="author" itemscope itemtype="http://schema.org/Person">
+        <span class="p-name" itemprop="name">kenny</span>
+      </span>
+      
+    <div class="postdate">
+      
+        <time datetime="2025-09-09T09:05:12.000Z" class="dt-published" itemprop="datePublished">2025-09-09</time>
+        
+      
+    </div>
+
+
+      
+
+      
+
+    </div>
+  </header>
+  
+
+  <div class="content e-content" itemprop="articleBody">
+    <h2 id="虚拟内存介绍"><a href="#虚拟内存介绍" class="headerlink" title="虚拟内存介绍"></a>虚拟内存介绍</h2><p>虚拟内存技术，相信学过计算机专业的人都不陌生。简单来讲，它就是将虚拟地址映射到实际的物理地址。使用虚拟内存有许多好处，例如它能够让每个用户进程都感觉自己拥有整一块物理内存（每个进程实现了隔离）、使用虚拟内存的间接映射可以实现懒分配、写时复制功能等等。</p>
+<p>在xv6中，启用了虚拟内存机制，它使用RISC-V的Sv39模式，即使用三级索引，具体转化的细节见下图1所示。从图中可以看到，一个虚拟地址共用到了9+9+9+12&#x3D;39位，L2的值用于第一级的索引（可以理解为偏移），L1的值用于第二级的索引，L0的值用于第三级的索引，Offset作为物理地址的最后12位。</p>
+<img src="photo1.png" style="zoom:50%;" />
+
+<center>图1 RISC-V地址转化细节（图片来源于教材）</center>
+
+<p>继续看图1，有一个非常关键的<u>寄存器satp</u>，这个寄存器的作用是存储第一级页表的地址，那么根据satp寄存器的值和L2的值，就能找到页表中对应的项（后续用英文PTE来代替项的称呼）。观察到一个页表有512个PTE，一个PTE有64位，每一位的解释可以看图的下方：bit位0～9是权限位Flags，bit位10～53是物理页号PPN。PPN就是一个地址值，前两级的PPN指向下一个页表的位置，最后一级的PPN和Offset拼接在一起形成物理地址。</p>
+<p>我们在看PTE中的权限位Flags，有V表示是否有效、R表示是否可读、W表示是否可写、X表示是否可执行、U表示用户级进程是否可访问、A表示是否访问过、D表示是否修改过。具体信息可以查阅xv6指令集官方文档。</p>
+<p>以上就是地址转化的过程，好消息是这个转化的过程由硬件（配合TLB Translation Look-aside Buffer）完成，不需要我们操心。</p>
+<p>继续下面内容以前，我们做一些简单的数学题。虚拟地址理论上可以表示的空间范围有多大？答案是：<mjx-container class="MathJax" jax="SVG"><svg style="vertical-align: -0.186ex;" xmlns="http://www.w3.org/2000/svg" width="25.226ex" height="2.072ex" role="img" focusable="false" viewBox="0 -833.9 11149.8 915.9" xmlns:xlink="http://www.w3.org/1999/xlink"><defs><path id="MJX-1-TEX-N-32" d="M109 429Q82 429 66 447T50 491Q50 562 103 614T235 666Q326 666 387 610T449 465Q449 422 429 383T381 315T301 241Q265 210 201 149L142 93L218 92Q375 92 385 97Q392 99 409 186V189H449V186Q448 183 436 95T421 3V0H50V19V31Q50 38 56 46T86 81Q115 113 136 137Q145 147 170 174T204 211T233 244T261 278T284 308T305 340T320 369T333 401T340 431T343 464Q343 527 309 573T212 619Q179 619 154 602T119 569T109 550Q109 549 114 549Q132 549 151 535T170 489Q170 464 154 447T109 429Z"></path><path id="MJX-1-TEX-N-39" d="M352 287Q304 211 232 211Q154 211 104 270T44 396Q42 412 42 436V444Q42 537 111 606Q171 666 243 666Q245 666 249 666T257 665H261Q273 665 286 663T323 651T370 619T413 560Q456 472 456 334Q456 194 396 97Q361 41 312 10T208 -22Q147 -22 108 7T68 93T121 149Q143 149 158 135T173 96Q173 78 164 65T148 49T135 44L131 43Q131 41 138 37T164 27T206 22H212Q272 22 313 86Q352 142 352 280V287ZM244 248Q292 248 321 297T351 430Q351 508 343 542Q341 552 337 562T323 588T293 615T246 625Q208 625 181 598Q160 576 154 546T147 441Q147 358 152 329T172 282Q197 248 244 248Z"></path><path id="MJX-1-TEX-N-D7" d="M630 29Q630 9 609 9Q604 9 587 25T493 118L389 222L284 117Q178 13 175 11Q171 9 168 9Q160 9 154 15T147 29Q147 36 161 51T255 146L359 250L255 354Q174 435 161 449T147 471Q147 480 153 485T168 490Q173 490 175 489Q178 487 284 383L389 278L493 382Q570 459 587 475T609 491Q630 491 630 471Q630 464 620 453T522 355L418 250L522 145Q606 61 618 48T630 29Z"></path><path id="MJX-1-TEX-N-31" d="M213 578L200 573Q186 568 160 563T102 556H83V602H102Q149 604 189 617T245 641T273 663Q275 666 285 666Q294 666 302 660V361L303 61Q310 54 315 52T339 48T401 46H427V0H416Q395 3 257 3Q121 3 100 0H88V46H114Q136 46 152 46T177 47T193 50T201 52T207 57T213 61V578Z"></path><path id="MJX-1-TEX-N-3D" d="M56 347Q56 360 70 367H707Q722 359 722 347Q722 336 708 328L390 327H72Q56 332 56 347ZM56 153Q56 168 72 173H708Q722 163 722 153Q722 140 707 133H70Q56 140 56 153Z"></path><path id="MJX-1-TEX-N-33" d="M127 463Q100 463 85 480T69 524Q69 579 117 622T233 665Q268 665 277 664Q351 652 390 611T430 522Q430 470 396 421T302 350L299 348Q299 347 308 345T337 336T375 315Q457 262 457 175Q457 96 395 37T238 -22Q158 -22 100 21T42 130Q42 158 60 175T105 193Q133 193 151 175T169 130Q169 119 166 110T159 94T148 82T136 74T126 70T118 67L114 66Q165 21 238 21Q293 21 321 74Q338 107 338 175V195Q338 290 274 322Q259 328 213 329L171 330L168 332Q166 335 166 348Q166 366 174 366Q202 366 232 371Q266 376 294 413T322 525V533Q322 590 287 612Q265 626 240 626Q208 626 181 615T143 592T132 580H135Q138 579 143 578T153 573T165 566T175 555T183 540T186 520Q186 498 172 481T127 463Z"></path><path id="MJX-1-TEX-I-1D435" d="M231 637Q204 637 199 638T194 649Q194 676 205 682Q206 683 335 683Q594 683 608 681Q671 671 713 636T756 544Q756 480 698 429T565 360L555 357Q619 348 660 311T702 219Q702 146 630 78T453 1Q446 0 242 0Q42 0 39 2Q35 5 35 10Q35 17 37 24Q42 43 47 45Q51 46 62 46H68Q95 46 128 49Q142 52 147 61Q150 65 219 339T288 628Q288 635 231 637ZM649 544Q649 574 634 600T585 634Q578 636 493 637Q473 637 451 637T416 636H403Q388 635 384 626Q382 622 352 506Q352 503 351 500L320 374H401Q482 374 494 376Q554 386 601 434T649 544ZM595 229Q595 273 572 302T512 336Q506 337 429 337Q311 337 310 336Q310 334 293 263T258 122L240 52Q240 48 252 48T333 46Q422 46 429 47Q491 54 543 105T595 229Z"></path></defs><g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)"><g data-mml-node="math"><g data-mml-node="msup"><g data-mml-node="mn"><use data-c="32" xlink:href="#MJX-1-TEX-N-32"></use></g><g data-mml-node="mn" transform="translate(533,363) scale(0.707)"><use data-c="39" xlink:href="#MJX-1-TEX-N-39"></use></g></g><g data-mml-node="mo" transform="translate(1158.8,0)"><use data-c="D7" xlink:href="#MJX-1-TEX-N-D7"></use></g><g data-mml-node="msup" transform="translate(2159,0)"><g data-mml-node="mn"><use data-c="32" xlink:href="#MJX-1-TEX-N-32"></use></g><g data-mml-node="mn" transform="translate(533,363) scale(0.707)"><use data-c="39" xlink:href="#MJX-1-TEX-N-39"></use></g></g><g data-mml-node="mo" transform="translate(3317.8,0)"><use data-c="D7" xlink:href="#MJX-1-TEX-N-D7"></use></g><g data-mml-node="msup" transform="translate(4318,0)"><g data-mml-node="mn"><use data-c="32" xlink:href="#MJX-1-TEX-N-32"></use></g><g data-mml-node="mn" transform="translate(533,363) scale(0.707)"><use data-c="39" xlink:href="#MJX-1-TEX-N-39"></use></g></g><g data-mml-node="mo" transform="translate(5476.8,0)"><use data-c="D7" xlink:href="#MJX-1-TEX-N-D7"></use></g><g data-mml-node="msup" transform="translate(6477,0)"><g data-mml-node="mn"><use data-c="32" xlink:href="#MJX-1-TEX-N-32"></use></g><g data-mml-node="TeXAtom" transform="translate(533,363) scale(0.707)" data-mjx-texclass="ORD"><g data-mml-node="mn"><use data-c="31" xlink:href="#MJX-1-TEX-N-31"></use><use data-c="32" xlink:href="#MJX-1-TEX-N-32" transform="translate(500,0)"></use></g></g></g><g data-mml-node="mo" transform="translate(8044.9,0)"><use data-c="3D" xlink:href="#MJX-1-TEX-N-3D"></use></g><g data-mml-node="msup" transform="translate(9100.7,0)"><g data-mml-node="mn"><use data-c="32" xlink:href="#MJX-1-TEX-N-32"></use></g><g data-mml-node="TeXAtom" transform="translate(533,363) scale(0.707)" data-mjx-texclass="ORD"><g data-mml-node="mn"><use data-c="33" xlink:href="#MJX-1-TEX-N-33"></use><use data-c="39" xlink:href="#MJX-1-TEX-N-39" transform="translate(500,0)"></use></g></g></g><g data-mml-node="mi" transform="translate(10390.8,0)"><use data-c="1D435" xlink:href="#MJX-1-TEX-I-1D435"></use></g></g></g></svg></mjx-container> 。物理地址的范围是<mjx-container class="MathJax" jax="SVG"><svg style="vertical-align: -0.186ex;" xmlns="http://www.w3.org/2000/svg" width="16.256ex" height="2.09ex" role="img" focusable="false" viewBox="0 -841.7 7185.3 923.7" xmlns:xlink="http://www.w3.org/1999/xlink"><defs><path id="MJX-1-TEX-N-32" d="M109 429Q82 429 66 447T50 491Q50 562 103 614T235 666Q326 666 387 610T449 465Q449 422 429 383T381 315T301 241Q265 210 201 149L142 93L218 92Q375 92 385 97Q392 99 409 186V189H449V186Q448 183 436 95T421 3V0H50V19V31Q50 38 56 46T86 81Q115 113 136 137Q145 147 170 174T204 211T233 244T261 278T284 308T305 340T320 369T333 401T340 431T343 464Q343 527 309 573T212 619Q179 619 154 602T119 569T109 550Q109 549 114 549Q132 549 151 535T170 489Q170 464 154 447T109 429Z"></path><path id="MJX-1-TEX-N-34" d="M462 0Q444 3 333 3Q217 3 199 0H190V46H221Q241 46 248 46T265 48T279 53T286 61Q287 63 287 115V165H28V211L179 442Q332 674 334 675Q336 677 355 677H373L379 671V211H471V165H379V114Q379 73 379 66T385 54Q393 47 442 46H471V0H462ZM293 211V545L74 212L183 211H293Z"></path><path id="MJX-1-TEX-N-D7" d="M630 29Q630 9 609 9Q604 9 587 25T493 118L389 222L284 117Q178 13 175 11Q171 9 168 9Q160 9 154 15T147 29Q147 36 161 51T255 146L359 250L255 354Q174 435 161 449T147 471Q147 480 153 485T168 490Q173 490 175 489Q178 487 284 383L389 278L493 382Q570 459 587 475T609 491Q630 491 630 471Q630 464 620 453T522 355L418 250L522 145Q606 61 618 48T630 29Z"></path><path id="MJX-1-TEX-N-31" d="M213 578L200 573Q186 568 160 563T102 556H83V602H102Q149 604 189 617T245 641T273 663Q275 666 285 666Q294 666 302 660V361L303 61Q310 54 315 52T339 48T401 46H427V0H416Q395 3 257 3Q121 3 100 0H88V46H114Q136 46 152 46T177 47T193 50T201 52T207 57T213 61V578Z"></path><path id="MJX-1-TEX-N-3D" d="M56 347Q56 360 70 367H707Q722 359 722 347Q722 336 708 328L390 327H72Q56 332 56 347ZM56 153Q56 168 72 173H708Q722 163 722 153Q722 140 707 133H70Q56 140 56 153Z"></path><path id="MJX-1-TEX-N-35" d="M164 157Q164 133 148 117T109 101H102Q148 22 224 22Q294 22 326 82Q345 115 345 210Q345 313 318 349Q292 382 260 382H254Q176 382 136 314Q132 307 129 306T114 304Q97 304 95 310Q93 314 93 485V614Q93 664 98 664Q100 666 102 666Q103 666 123 658T178 642T253 634Q324 634 389 662Q397 666 402 666Q410 666 410 648V635Q328 538 205 538Q174 538 149 544L139 546V374Q158 388 169 396T205 412T256 420Q337 420 393 355T449 201Q449 109 385 44T229 -22Q148 -22 99 32T50 154Q50 178 61 192T84 210T107 214Q132 214 148 197T164 157Z"></path><path id="MJX-1-TEX-N-36" d="M42 313Q42 476 123 571T303 666Q372 666 402 630T432 550Q432 525 418 510T379 495Q356 495 341 509T326 548Q326 592 373 601Q351 623 311 626Q240 626 194 566Q147 500 147 364L148 360Q153 366 156 373Q197 433 263 433H267Q313 433 348 414Q372 400 396 374T435 317Q456 268 456 210V192Q456 169 451 149Q440 90 387 34T253 -22Q225 -22 199 -14T143 16T92 75T56 172T42 313ZM257 397Q227 397 205 380T171 335T154 278T148 216Q148 133 160 97T198 39Q222 21 251 21Q302 21 329 59Q342 77 347 104T352 209Q352 289 347 316T329 361Q302 397 257 397Z"></path><path id="MJX-1-TEX-I-1D435" d="M231 637Q204 637 199 638T194 649Q194 676 205 682Q206 683 335 683Q594 683 608 681Q671 671 713 636T756 544Q756 480 698 429T565 360L555 357Q619 348 660 311T702 219Q702 146 630 78T453 1Q446 0 242 0Q42 0 39 2Q35 5 35 10Q35 17 37 24Q42 43 47 45Q51 46 62 46H68Q95 46 128 49Q142 52 147 61Q150 65 219 339T288 628Q288 635 231 637ZM649 544Q649 574 634 600T585 634Q578 636 493 637Q473 637 451 637T416 636H403Q388 635 384 626Q382 622 352 506Q352 503 351 500L320 374H401Q482 374 494 376Q554 386 601 434T649 544ZM595 229Q595 273 572 302T512 336Q506 337 429 337Q311 337 310 336Q310 334 293 263T258 122L240 52Q240 48 252 48T333 46Q422 46 429 47Q491 54 543 105T595 229Z"></path></defs><g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)"><g data-mml-node="math"><g data-mml-node="msup"><g data-mml-node="mn"><use data-c="32" xlink:href="#MJX-1-TEX-N-32"></use></g><g data-mml-node="TeXAtom" transform="translate(533,363) scale(0.707)" data-mjx-texclass="ORD"><g data-mml-node="mn"><use data-c="34" xlink:href="#MJX-1-TEX-N-34"></use><use data-c="34" xlink:href="#MJX-1-TEX-N-34" transform="translate(500,0)"></use></g></g></g><g data-mml-node="mo" transform="translate(1512.3,0)"><use data-c="D7" xlink:href="#MJX-1-TEX-N-D7"></use></g><g data-mml-node="msup" transform="translate(2512.6,0)"><g data-mml-node="mn"><use data-c="32" xlink:href="#MJX-1-TEX-N-32"></use></g><g data-mml-node="TeXAtom" transform="translate(533,363) scale(0.707)" data-mjx-texclass="ORD"><g data-mml-node="mn"><use data-c="31" xlink:href="#MJX-1-TEX-N-31"></use><use data-c="32" xlink:href="#MJX-1-TEX-N-32" transform="translate(500,0)"></use></g></g></g><g data-mml-node="mo" transform="translate(4080.4,0)"><use data-c="3D" xlink:href="#MJX-1-TEX-N-3D"></use></g><g data-mml-node="msup" transform="translate(5136.2,0)"><g data-mml-node="mn"><use data-c="32" xlink:href="#MJX-1-TEX-N-32"></use></g><g data-mml-node="TeXAtom" transform="translate(533,363) scale(0.707)" data-mjx-texclass="ORD"><g data-mml-node="mn"><use data-c="35" xlink:href="#MJX-1-TEX-N-35"></use><use data-c="36" xlink:href="#MJX-1-TEX-N-36" transform="translate(500,0)"></use></g></g></g><g data-mml-node="mi" transform="translate(6426.3,0)"><use data-c="1D435" xlink:href="#MJX-1-TEX-I-1D435"></use></g></g></g></svg></mjx-container>。我们看到物理地址的Offset是12位，这里需要注意后续分配内存空间都是按一页为单位进行分配的，而一页的大小就是<mjx-container class="MathJax" jax="SVG"><svg style="vertical-align: -0.186ex;" xmlns="http://www.w3.org/2000/svg" width="12.178ex" height="2.072ex" role="img" focusable="false" viewBox="0 -833.9 5382.7 915.9" xmlns:xlink="http://www.w3.org/1999/xlink"><defs><path id="MJX-1-TEX-N-32" d="M109 429Q82 429 66 447T50 491Q50 562 103 614T235 666Q326 666 387 610T449 465Q449 422 429 383T381 315T301 241Q265 210 201 149L142 93L218 92Q375 92 385 97Q392 99 409 186V189H449V186Q448 183 436 95T421 3V0H50V19V31Q50 38 56 46T86 81Q115 113 136 137Q145 147 170 174T204 211T233 244T261 278T284 308T305 340T320 369T333 401T340 431T343 464Q343 527 309 573T212 619Q179 619 154 602T119 569T109 550Q109 549 114 549Q132 549 151 535T170 489Q170 464 154 447T109 429Z"></path><path id="MJX-1-TEX-N-31" d="M213 578L200 573Q186 568 160 563T102 556H83V602H102Q149 604 189 617T245 641T273 663Q275 666 285 666Q294 666 302 660V361L303 61Q310 54 315 52T339 48T401 46H427V0H416Q395 3 257 3Q121 3 100 0H88V46H114Q136 46 152 46T177 47T193 50T201 52T207 57T213 61V578Z"></path><path id="MJX-1-TEX-N-3D" d="M56 347Q56 360 70 367H707Q722 359 722 347Q722 336 708 328L390 327H72Q56 332 56 347ZM56 153Q56 168 72 173H708Q722 163 722 153Q722 140 707 133H70Q56 140 56 153Z"></path><path id="MJX-1-TEX-N-34" d="M462 0Q444 3 333 3Q217 3 199 0H190V46H221Q241 46 248 46T265 48T279 53T286 61Q287 63 287 115V165H28V211L179 442Q332 674 334 675Q336 677 355 677H373L379 671V211H471V165H379V114Q379 73 379 66T385 54Q393 47 442 46H471V0H462ZM293 211V545L74 212L183 211H293Z"></path><path id="MJX-1-TEX-N-30" d="M96 585Q152 666 249 666Q297 666 345 640T423 548Q460 465 460 320Q460 165 417 83Q397 41 362 16T301 -15T250 -22Q224 -22 198 -16T137 16T82 83Q39 165 39 320Q39 494 96 585ZM321 597Q291 629 250 629Q208 629 178 597Q153 571 145 525T137 333Q137 175 145 125T181 46Q209 16 250 16Q290 16 318 46Q347 76 354 130T362 333Q362 478 354 524T321 597Z"></path><path id="MJX-1-TEX-N-39" d="M352 287Q304 211 232 211Q154 211 104 270T44 396Q42 412 42 436V444Q42 537 111 606Q171 666 243 666Q245 666 249 666T257 665H261Q273 665 286 663T323 651T370 619T413 560Q456 472 456 334Q456 194 396 97Q361 41 312 10T208 -22Q147 -22 108 7T68 93T121 149Q143 149 158 135T173 96Q173 78 164 65T148 49T135 44L131 43Q131 41 138 37T164 27T206 22H212Q272 22 313 86Q352 142 352 280V287ZM244 248Q292 248 321 297T351 430Q351 508 343 542Q341 552 337 562T323 588T293 615T246 625Q208 625 181 598Q160 576 154 546T147 441Q147 358 152 329T172 282Q197 248 244 248Z"></path><path id="MJX-1-TEX-N-36" d="M42 313Q42 476 123 571T303 666Q372 666 402 630T432 550Q432 525 418 510T379 495Q356 495 341 509T326 548Q326 592 373 601Q351 623 311 626Q240 626 194 566Q147 500 147 364L148 360Q153 366 156 373Q197 433 263 433H267Q313 433 348 414Q372 400 396 374T435 317Q456 268 456 210V192Q456 169 451 149Q440 90 387 34T253 -22Q225 -22 199 -14T143 16T92 75T56 172T42 313ZM257 397Q227 397 205 380T171 335T154 278T148 216Q148 133 160 97T198 39Q222 21 251 21Q302 21 329 59Q342 77 347 104T352 209Q352 289 347 316T329 361Q302 397 257 397Z"></path><path id="MJX-1-TEX-I-1D435" d="M231 637Q204 637 199 638T194 649Q194 676 205 682Q206 683 335 683Q594 683 608 681Q671 671 713 636T756 544Q756 480 698 429T565 360L555 357Q619 348 660 311T702 219Q702 146 630 78T453 1Q446 0 242 0Q42 0 39 2Q35 5 35 10Q35 17 37 24Q42 43 47 45Q51 46 62 46H68Q95 46 128 49Q142 52 147 61Q150 65 219 339T288 628Q288 635 231 637ZM649 544Q649 574 634 600T585 634Q578 636 493 637Q473 637 451 637T416 636H403Q388 635 384 626Q382 622 352 506Q352 503 351 500L320 374H401Q482 374 494 376Q554 386 601 434T649 544ZM595 229Q595 273 572 302T512 336Q506 337 429 337Q311 337 310 336Q310 334 293 263T258 122L240 52Q240 48 252 48T333 46Q422 46 429 47Q491 54 543 105T595 229Z"></path></defs><g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)"><g data-mml-node="math"><g data-mml-node="msup"><g data-mml-node="mn"><use data-c="32" xlink:href="#MJX-1-TEX-N-32"></use></g><g data-mml-node="TeXAtom" transform="translate(533,363) scale(0.707)" data-mjx-texclass="ORD"><g data-mml-node="mn"><use data-c="31" xlink:href="#MJX-1-TEX-N-31"></use><use data-c="32" xlink:href="#MJX-1-TEX-N-32" transform="translate(500,0)"></use></g></g></g><g data-mml-node="mo" transform="translate(1567.9,0)"><use data-c="3D" xlink:href="#MJX-1-TEX-N-3D"></use></g><g data-mml-node="mn" transform="translate(2623.7,0)"><use data-c="34" xlink:href="#MJX-1-TEX-N-34"></use><use data-c="30" xlink:href="#MJX-1-TEX-N-30" transform="translate(500,0)"></use><use data-c="39" xlink:href="#MJX-1-TEX-N-39" transform="translate(1000,0)"></use><use data-c="36" xlink:href="#MJX-1-TEX-N-36" transform="translate(1500,0)"></use></g><g data-mml-node="mi" transform="translate(4623.7,0)"><use data-c="1D435" xlink:href="#MJX-1-TEX-I-1D435"></use></g></g></g></svg></mjx-container>。我们看到三个页表，它们都有512个PTE，一个PTE有64位，那么<mjx-container class="MathJax" jax="SVG"><svg style="vertical-align: -0.186ex;" xmlns="http://www.w3.org/2000/svg" width="20.949ex" height="1.731ex" role="img" focusable="false" viewBox="0 -683 9259.4 765" xmlns:xlink="http://www.w3.org/1999/xlink"><defs><path id="MJX-1-TEX-N-35" d="M164 157Q164 133 148 117T109 101H102Q148 22 224 22Q294 22 326 82Q345 115 345 210Q345 313 318 349Q292 382 260 382H254Q176 382 136 314Q132 307 129 306T114 304Q97 304 95 310Q93 314 93 485V614Q93 664 98 664Q100 666 102 666Q103 666 123 658T178 642T253 634Q324 634 389 662Q397 666 402 666Q410 666 410 648V635Q328 538 205 538Q174 538 149 544L139 546V374Q158 388 169 396T205 412T256 420Q337 420 393 355T449 201Q449 109 385 44T229 -22Q148 -22 99 32T50 154Q50 178 61 192T84 210T107 214Q132 214 148 197T164 157Z"></path><path id="MJX-1-TEX-N-31" d="M213 578L200 573Q186 568 160 563T102 556H83V602H102Q149 604 189 617T245 641T273 663Q275 666 285 666Q294 666 302 660V361L303 61Q310 54 315 52T339 48T401 46H427V0H416Q395 3 257 3Q121 3 100 0H88V46H114Q136 46 152 46T177 47T193 50T201 52T207 57T213 61V578Z"></path><path id="MJX-1-TEX-N-32" d="M109 429Q82 429 66 447T50 491Q50 562 103 614T235 666Q326 666 387 610T449 465Q449 422 429 383T381 315T301 241Q265 210 201 149L142 93L218 92Q375 92 385 97Q392 99 409 186V189H449V186Q448 183 436 95T421 3V0H50V19V31Q50 38 56 46T86 81Q115 113 136 137Q145 147 170 174T204 211T233 244T261 278T284 308T305 340T320 369T333 401T340 431T343 464Q343 527 309 573T212 619Q179 619 154 602T119 569T109 550Q109 549 114 549Q132 549 151 535T170 489Q170 464 154 447T109 429Z"></path><path id="MJX-1-TEX-N-2217" d="M229 286Q216 420 216 436Q216 454 240 464Q241 464 245 464T251 465Q263 464 273 456T283 436Q283 419 277 356T270 286L328 328Q384 369 389 372T399 375Q412 375 423 365T435 338Q435 325 425 315Q420 312 357 282T289 250L355 219L425 184Q434 175 434 161Q434 146 425 136T401 125Q393 125 383 131T328 171L270 213Q283 79 283 63Q283 53 276 44T250 35Q231 35 224 44T216 63Q216 80 222 143T229 213L171 171Q115 130 110 127Q106 124 100 124Q87 124 76 134T64 161Q64 166 64 169T67 175T72 181T81 188T94 195T113 204T138 215T170 230T210 250L74 315Q65 324 65 338Q65 353 74 363T98 374Q106 374 116 368T171 328L229 286Z"></path><path id="MJX-1-TEX-N-36" d="M42 313Q42 476 123 571T303 666Q372 666 402 630T432 550Q432 525 418 510T379 495Q356 495 341 509T326 548Q326 592 373 601Q351 623 311 626Q240 626 194 566Q147 500 147 364L148 360Q153 366 156 373Q197 433 263 433H267Q313 433 348 414Q372 400 396 374T435 317Q456 268 456 210V192Q456 169 451 149Q440 90 387 34T253 -22Q225 -22 199 -14T143 16T92 75T56 172T42 313ZM257 397Q227 397 205 380T171 335T154 278T148 216Q148 133 160 97T198 39Q222 21 251 21Q302 21 329 59Q342 77 347 104T352 209Q352 289 347 316T329 361Q302 397 257 397Z"></path><path id="MJX-1-TEX-N-34" d="M462 0Q444 3 333 3Q217 3 199 0H190V46H221Q241 46 248 46T265 48T279 53T286 61Q287 63 287 115V165H28V211L179 442Q332 674 334 675Q336 677 355 677H373L379 671V211H471V165H379V114Q379 73 379 66T385 54Q393 47 442 46H471V0H462ZM293 211V545L74 212L183 211H293Z"></path><path id="MJX-1-TEX-N-F7" d="M318 466Q318 500 339 518T386 537Q418 537 438 517T458 466Q458 438 440 417T388 396Q355 396 337 417T318 466ZM56 237T56 250T70 270H706Q721 262 721 250T706 230H70Q56 237 56 250ZM318 34Q318 68 339 86T386 105Q418 105 438 85T458 34Q458 6 440 -15T388 -36Q355 -36 337 -15T318 34Z"></path><path id="MJX-1-TEX-N-38" d="M70 417T70 494T124 618T248 666Q319 666 374 624T429 515Q429 485 418 459T392 417T361 389T335 371T324 363L338 354Q352 344 366 334T382 323Q457 264 457 174Q457 95 399 37T249 -22Q159 -22 101 29T43 155Q43 263 172 335L154 348Q133 361 127 368Q70 417 70 494ZM286 386L292 390Q298 394 301 396T311 403T323 413T334 425T345 438T355 454T364 471T369 491T371 513Q371 556 342 586T275 624Q268 625 242 625Q201 625 165 599T128 534Q128 511 141 492T167 463T217 431Q224 426 228 424L286 386ZM250 21Q308 21 350 55T392 137Q392 154 387 169T375 194T353 216T330 234T301 253T274 270Q260 279 244 289T218 306L210 311Q204 311 181 294T133 239T107 157Q107 98 150 60T250 21Z"></path><path id="MJX-1-TEX-N-3D" d="M56 347Q56 360 70 367H707Q722 359 722 347Q722 336 708 328L390 327H72Q56 332 56 347ZM56 153Q56 168 72 173H708Q722 163 722 153Q722 140 707 133H70Q56 140 56 153Z"></path><path id="MJX-1-TEX-N-30" d="M96 585Q152 666 249 666Q297 666 345 640T423 548Q460 465 460 320Q460 165 417 83Q397 41 362 16T301 -15T250 -22Q224 -22 198 -16T137 16T82 83Q39 165 39 320Q39 494 96 585ZM321 597Q291 629 250 629Q208 629 178 597Q153 571 145 525T137 333Q137 175 145 125T181 46Q209 16 250 16Q290 16 318 46Q347 76 354 130T362 333Q362 478 354 524T321 597Z"></path><path id="MJX-1-TEX-I-1D435" d="M231 637Q204 637 199 638T194 649Q194 676 205 682Q206 683 335 683Q594 683 608 681Q671 671 713 636T756 544Q756 480 698 429T565 360L555 357Q619 348 660 311T702 219Q702 146 630 78T453 1Q446 0 242 0Q42 0 39 2Q35 5 35 10Q35 17 37 24Q42 43 47 45Q51 46 62 46H68Q95 46 128 49Q142 52 147 61Q150 65 219 339T288 628Q288 635 231 637ZM649 544Q649 574 634 600T585 634Q578 636 493 637Q473 637 451 637T416 636H403Q388 635 384 626Q382 622 352 506Q352 503 351 500L320 374H401Q482 374 494 376Q554 386 601 434T649 544ZM595 229Q595 273 572 302T512 336Q506 337 429 337Q311 337 310 336Q310 334 293 263T258 122L240 52Q240 48 252 48T333 46Q422 46 429 47Q491 54 543 105T595 229Z"></path></defs><g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)"><g data-mml-node="math"><g data-mml-node="mn"><use data-c="35" xlink:href="#MJX-1-TEX-N-35"></use><use data-c="31" xlink:href="#MJX-1-TEX-N-31" transform="translate(500,0)"></use><use data-c="32" xlink:href="#MJX-1-TEX-N-32" transform="translate(1000,0)"></use></g><g data-mml-node="mo" transform="translate(1722.2,0)"><use data-c="2217" xlink:href="#MJX-1-TEX-N-2217"></use></g><g data-mml-node="mn" transform="translate(2444.4,0)"><use data-c="36" xlink:href="#MJX-1-TEX-N-36"></use><use data-c="34" xlink:href="#MJX-1-TEX-N-34" transform="translate(500,0)"></use></g><g data-mml-node="mo" transform="translate(3666.7,0)"><use data-c="F7" xlink:href="#MJX-1-TEX-N-F7"></use></g><g data-mml-node="mn" transform="translate(4666.9,0)"><use data-c="38" xlink:href="#MJX-1-TEX-N-38"></use></g><g data-mml-node="mo" transform="translate(5444.7,0)"><use data-c="3D" xlink:href="#MJX-1-TEX-N-3D"></use></g><g data-mml-node="mn" transform="translate(6500.4,0)"><use data-c="34" xlink:href="#MJX-1-TEX-N-34"></use><use data-c="30" xlink:href="#MJX-1-TEX-N-30" transform="translate(500,0)"></use><use data-c="38" xlink:href="#MJX-1-TEX-N-38" transform="translate(1000,0)"></use><use data-c="36" xlink:href="#MJX-1-TEX-N-36" transform="translate(1500,0)"></use></g><g data-mml-node="mi" transform="translate(8500.4,0)"><use data-c="1D435" xlink:href="#MJX-1-TEX-I-1D435"></use></g></g></g></svg></mjx-container>，所以一个页表也就是一页的大小4096B。</p>
+<h3 id="源码解析"><a href="#源码解析" class="headerlink" title="源码解析"></a>源码解析</h3><p>下面的代码块来源于xv6-riscv&#x2F;kernel&#x2F;riscv.h，这个头文件里有一些重要的宏定义我们需要知道。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span> PGSIZE 4096 <span class="comment">// 一页的大小，4096字节</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> PGSHIFT 12  <span class="comment">// 用于偏移使用</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> PGROUNDUP(sz)  (((sz)+PGSIZE-1) &amp; ~(PGSIZE-1)) <span class="comment">//用于向上对齐</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> PGROUNDDOWN(a) (((a)) &amp; ~(PGSIZE-1))  <span class="comment">//用于向下对齐</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> PTE_V (1L &lt;&lt; 0) <span class="comment">// PTE的权限V</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> PTE_R (1L &lt;&lt; 1) <span class="comment">// PTE的权限R</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> PTE_W (1L &lt;&lt; 2) <span class="comment">// PTE的权限W</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> PTE_X (1L &lt;&lt; 3) <span class="comment">// PTE的权限X</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> PTE_U (1L &lt;&lt; 4) <span class="comment">// PTE的权限U</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 将物理地址pa右移12位，在左移10位，转化成一个PTE（PPN+Flags，Flags全0）</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> PA2PTE(pa) ((((uint64)pa) &gt;&gt; 12) &lt;&lt; 10)</span></span><br><span class="line"><span class="comment">// 将PTE右移10位，在左移12位，转化成一个物理地址（PPN+Offset，Offset全0）</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> PTE2PA(pte) (((pte) &gt;&gt; 10) &lt;&lt; 12)</span></span><br><span class="line"><span class="comment">// 提取出PTE的权限位Flags，共10位</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> PTE_FLAGS(pte) ((pte) &amp; 0x3FF)</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 代码21～23用于从虚拟地址va中提取3个9位的页表索引</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> PXMASK          0x1FF <span class="comment">// 9 bits</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> PXSHIFT(level)  (PGSHIFT+(9*(level)))</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> PX(level, va) ((((uint64) (va)) &gt;&gt; PXSHIFT(level)) &amp; PXMASK)</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 虚拟地址的最大值，若虚拟地址&gt;=MAXVA则是非法的</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> MAXVA (1L &lt;&lt; (9 + 9 + 9 + 12 - 1))</span></span><br></pre></td></tr></table></figure>
+
+<p>其中code7～11是用于提取PTE的各个权限位。code4～5是非常有用的宏定义，用于定位到此地址所处页的底部和顶部，例如PGROUNDDOWN(0x0001)&#x3D;0x0，PGROUNDUP(0x0001)&#x3D;0x1000，用与和非这两个逻辑运算符实现的代码，非常巧妙！形象的解释可以看下图2所示</p>
+<p><img src="/JunrenChen01.github.io/2025/09/09/xv6%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%86%85%E5%AD%98/codeAnal1.png"></p>
+<center>图2 PGROUNDUP 和 PGROUNDDOWN </center>
+
+<p>其中code21～23用于提取虚拟地址的三个索引值，例如PX(0, va)获得L0，PX(1, va)获得L1，PX(2, va)获得L2。</p>
+<p>code26是最大的虚拟地址，xv6允许的地址范围从<mjx-container class="MathJax" jax="SVG"><svg style="vertical-align: -0.452ex;" xmlns="http://www.w3.org/2000/svg" width="10.209ex" height="2.339ex" role="img" focusable="false" viewBox="0 -833.9 4512.6 1033.9" xmlns:xlink="http://www.w3.org/1999/xlink"><defs><path id="MJX-1-TEX-N-30" d="M96 585Q152 666 249 666Q297 666 345 640T423 548Q460 465 460 320Q460 165 417 83Q397 41 362 16T301 -15T250 -22Q224 -22 198 -16T137 16T82 83Q39 165 39 320Q39 494 96 585ZM321 597Q291 629 250 629Q208 629 178 597Q153 571 145 525T137 333Q137 175 145 125T181 46Q209 16 250 16Q290 16 318 46Q347 76 354 130T362 333Q362 478 354 524T321 597Z"></path><path id="MJX-1-TEX-N-32" d="M109 429Q82 429 66 447T50 491Q50 562 103 614T235 666Q326 666 387 610T449 465Q449 422 429 383T381 315T301 241Q265 210 201 149L142 93L218 92Q375 92 385 97Q392 99 409 186V189H449V186Q448 183 436 95T421 3V0H50V19V31Q50 38 56 46T86 81Q115 113 136 137Q145 147 170 174T204 211T233 244T261 278T284 308T305 340T320 369T333 401T340 431T343 464Q343 527 309 573T212 619Q179 619 154 602T119 569T109 550Q109 549 114 549Q132 549 151 535T170 489Q170 464 154 447T109 429Z"></path><path id="MJX-1-TEX-N-33" d="M127 463Q100 463 85 480T69 524Q69 579 117 622T233 665Q268 665 277 664Q351 652 390 611T430 522Q430 470 396 421T302 350L299 348Q299 347 308 345T337 336T375 315Q457 262 457 175Q457 96 395 37T238 -22Q158 -22 100 21T42 130Q42 158 60 175T105 193Q133 193 151 175T169 130Q169 119 166 110T159 94T148 82T136 74T126 70T118 67L114 66Q165 21 238 21Q293 21 321 74Q338 107 338 175V195Q338 290 274 322Q259 328 213 329L171 330L168 332Q166 335 166 348Q166 366 174 366Q202 366 232 371Q266 376 294 413T322 525V533Q322 590 287 612Q265 626 240 626Q208 626 181 615T143 592T132 580H135Q138 579 143 578T153 573T165 566T175 555T183 540T186 520Q186 498 172 481T127 463Z"></path><path id="MJX-1-TEX-N-38" d="M70 417T70 494T124 618T248 666Q319 666 374 624T429 515Q429 485 418 459T392 417T361 389T335 371T324 363L338 354Q352 344 366 334T382 323Q457 264 457 174Q457 95 399 37T249 -22Q159 -22 101 29T43 155Q43 263 172 335L154 348Q133 361 127 368Q70 417 70 494ZM286 386L292 390Q298 394 301 396T311 403T323 413T334 425T345 438T355 454T364 471T369 491T371 513Q371 556 342 586T275 624Q268 625 242 625Q201 625 165 599T128 534Q128 511 141 492T167 463T217 431Q224 426 228 424L286 386ZM250 21Q308 21 350 55T392 137Q392 154 387 169T375 194T353 216T330 234T301 253T274 270Q260 279 244 289T218 306L210 311Q204 311 181 294T133 239T107 157Q107 98 150 60T250 21Z"></path><path id="MJX-1-TEX-N-2212" d="M84 237T84 250T98 270H679Q694 262 694 250T679 230H98Q84 237 84 250Z"></path><path id="MJX-1-TEX-N-31" d="M213 578L200 573Q186 568 160 563T102 556H83V602H102Q149 604 189 617T245 641T273 663Q275 666 285 666Q294 666 302 660V361L303 61Q310 54 315 52T339 48T401 46H427V0H416Q395 3 257 3Q121 3 100 0H88V46H114Q136 46 152 46T177 47T193 50T201 52T207 57T213 61V578Z"></path></defs><g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)"><g data-mml-node="math"><g data-mml-node="mn"><use data-c="30" xlink:href="#MJX-1-TEX-N-30"></use></g><g data-mml-node="mi" transform="translate(500,0)"><text data-variant="italic" transform="scale(1,-1)" font-size="884px" font-family="serif" font-style="italic">～</text></g><g data-mml-node="msup" transform="translate(1500,0)"><g data-mml-node="mn"><use data-c="32" xlink:href="#MJX-1-TEX-N-32"></use></g><g data-mml-node="TeXAtom" transform="translate(533,363) scale(0.707)" data-mjx-texclass="ORD"><g data-mml-node="mn"><use data-c="33" xlink:href="#MJX-1-TEX-N-33"></use><use data-c="38" xlink:href="#MJX-1-TEX-N-38" transform="translate(500,0)"></use></g></g></g><g data-mml-node="mo" transform="translate(3012.3,0)"><use data-c="2212" xlink:href="#MJX-1-TEX-N-2212"></use></g><g data-mml-node="mn" transform="translate(4012.6,0)"><use data-c="31" xlink:href="#MJX-1-TEX-N-31"></use></g></g></g></svg></mjx-container> ，共<mjx-container class="MathJax" jax="SVG"><svg style="vertical-align: 0;" xmlns="http://www.w3.org/2000/svg" width="4.636ex" height="1.887ex" role="img" focusable="false" viewBox="0 -833.9 2049.1 833.9" xmlns:xlink="http://www.w3.org/1999/xlink"><defs><path id="MJX-1-TEX-N-32" d="M109 429Q82 429 66 447T50 491Q50 562 103 614T235 666Q326 666 387 610T449 465Q449 422 429 383T381 315T301 241Q265 210 201 149L142 93L218 92Q375 92 385 97Q392 99 409 186V189H449V186Q448 183 436 95T421 3V0H50V19V31Q50 38 56 46T86 81Q115 113 136 137Q145 147 170 174T204 211T233 244T261 278T284 308T305 340T320 369T333 401T340 431T343 464Q343 527 309 573T212 619Q179 619 154 602T119 569T109 550Q109 549 114 549Q132 549 151 535T170 489Q170 464 154 447T109 429Z"></path><path id="MJX-1-TEX-N-33" d="M127 463Q100 463 85 480T69 524Q69 579 117 622T233 665Q268 665 277 664Q351 652 390 611T430 522Q430 470 396 421T302 350L299 348Q299 347 308 345T337 336T375 315Q457 262 457 175Q457 96 395 37T238 -22Q158 -22 100 21T42 130Q42 158 60 175T105 193Q133 193 151 175T169 130Q169 119 166 110T159 94T148 82T136 74T126 70T118 67L114 66Q165 21 238 21Q293 21 321 74Q338 107 338 175V195Q338 290 274 322Q259 328 213 329L171 330L168 332Q166 335 166 348Q166 366 174 366Q202 366 232 371Q266 376 294 413T322 525V533Q322 590 287 612Q265 626 240 626Q208 626 181 615T143 592T132 580H135Q138 579 143 578T153 573T165 566T175 555T183 540T186 520Q186 498 172 481T127 463Z"></path><path id="MJX-1-TEX-N-38" d="M70 417T70 494T124 618T248 666Q319 666 374 624T429 515Q429 485 418 459T392 417T361 389T335 371T324 363L338 354Q352 344 366 334T382 323Q457 264 457 174Q457 95 399 37T249 -22Q159 -22 101 29T43 155Q43 263 172 335L154 348Q133 361 127 368Q70 417 70 494ZM286 386L292 390Q298 394 301 396T311 403T323 413T334 425T345 438T355 454T364 471T369 491T371 513Q371 556 342 586T275 624Q268 625 242 625Q201 625 165 599T128 534Q128 511 141 492T167 463T217 431Q224 426 228 424L286 386ZM250 21Q308 21 350 55T392 137Q392 154 387 169T375 194T353 216T330 234T301 253T274 270Q260 279 244 289T218 306L210 311Q204 311 181 294T133 239T107 157Q107 98 150 60T250 21Z"></path><path id="MJX-1-TEX-I-1D435" d="M231 637Q204 637 199 638T194 649Q194 676 205 682Q206 683 335 683Q594 683 608 681Q671 671 713 636T756 544Q756 480 698 429T565 360L555 357Q619 348 660 311T702 219Q702 146 630 78T453 1Q446 0 242 0Q42 0 39 2Q35 5 35 10Q35 17 37 24Q42 43 47 45Q51 46 62 46H68Q95 46 128 49Q142 52 147 61Q150 65 219 339T288 628Q288 635 231 637ZM649 544Q649 574 634 600T585 634Q578 636 493 637Q473 637 451 637T416 636H403Q388 635 384 626Q382 622 352 506Q352 503 351 500L320 374H401Q482 374 494 376Q554 386 601 434T649 544ZM595 229Q595 273 572 302T512 336Q506 337 429 337Q311 337 310 336Q310 334 293 263T258 122L240 52Q240 48 252 48T333 46Q422 46 429 47Q491 54 543 105T595 229Z"></path></defs><g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)"><g data-mml-node="math"><g data-mml-node="msup"><g data-mml-node="mn"><use data-c="32" xlink:href="#MJX-1-TEX-N-32"></use></g><g data-mml-node="TeXAtom" transform="translate(533,363) scale(0.707)" data-mjx-texclass="ORD"><g data-mml-node="mn"><use data-c="33" xlink:href="#MJX-1-TEX-N-33"></use><use data-c="38" xlink:href="#MJX-1-TEX-N-38" transform="translate(500,0)"></use></g></g></g><g data-mml-node="mi" transform="translate(1290.1,0)"><use data-c="1D435" xlink:href="#MJX-1-TEX-I-1D435"></use></g></g></g></svg></mjx-container>，和图1中的理论值不一样，可以理解为Offset少了1位，暂时不明确出于什么原因这样设置。</p>
+<hr>
+<h2 id="xv6的物理内存分配"><a href="#xv6的物理内存分配" class="headerlink" title="xv6的物理内存分配"></a>xv6的物理内存分配</h2><hr>
+<h2 id="xv6的内存管理"><a href="#xv6的内存管理" class="headerlink" title="xv6的内存管理"></a>xv6的内存管理</h2><h3 id="内核层面"><a href="#内核层面" class="headerlink" title="内核层面"></a>内核层面</h3><h3 id="用户级层面"><a href="#用户级层面" class="headerlink" title="用户级层面"></a>用户级层面</h3>
+  </div>
+</article>
+
+
+
+        
+          <div id="footer-post-container">
+  <div id="footer-post">
+
+    <div id="nav-footer" style="display: none">
+      <ul>
+        
+          <li><a href="/JunrenChen01.github.io/">首页</a></li>
+        
+          <li><a href="/JunrenChen01.github.io/about/">关于</a></li>
+        
+          <li><a href="/JunrenChen01.github.io/archives/">归档</a></li>
+        
+          <li><a href="/JunrenChen01.github.io/null">项目</a></li>
+        
+      </ul>
+    </div>
+
+    
+    
+      <div id="toc-footer" style="display: none">
+        <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E8%99%9A%E6%8B%9F%E5%86%85%E5%AD%98%E4%BB%8B%E7%BB%8D"><span class="toc-number">1.</span> <span class="toc-text">虚拟内存介绍</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90"><span class="toc-number">1.1.</span> <span class="toc-text">源码解析</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#xv6%E7%9A%84%E7%89%A9%E7%90%86%E5%86%85%E5%AD%98%E5%88%86%E9%85%8D"><span class="toc-number">2.</span> <span class="toc-text">xv6的物理内存分配</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#xv6%E7%9A%84%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86"><span class="toc-number">3.</span> <span class="toc-text">xv6的内存管理</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%86%85%E6%A0%B8%E5%B1%82%E9%9D%A2"><span class="toc-number">3.1.</span> <span class="toc-text">内核层面</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%94%A8%E6%88%B7%E7%BA%A7%E5%B1%82%E9%9D%A2"><span class="toc-number">3.2.</span> <span class="toc-text">用户级层面</span></a></li></ol></li></ol>
+      </div>
+    
+
+    <div id="share-footer" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=https://junrenchen01.github.io/JunrenChen01.github.io/2025/09/09/xv6%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%86%85%E5%AD%98/"><i class="fab fa-facebook fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=https://junrenchen01.github.io/JunrenChen01.github.io/2025/09/09/xv6%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%86%85%E5%AD%98/&text=xv6如何管理内存"><i class="fab fa-twitter fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=https://junrenchen01.github.io/JunrenChen01.github.io/2025/09/09/xv6%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%86%85%E5%AD%98/&title=xv6如何管理内存"><i class="fab fa-linkedin fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=https://junrenchen01.github.io/JunrenChen01.github.io/2025/09/09/xv6%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%86%85%E5%AD%98/&is_video=false&description=xv6如何管理内存"><i class="fab fa-pinterest fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=xv6如何管理内存&body=Check out this article: https://junrenchen01.github.io/JunrenChen01.github.io/2025/09/09/xv6%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%86%85%E5%AD%98/"><i class="fa-solid fa-envelope fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=https://junrenchen01.github.io/JunrenChen01.github.io/2025/09/09/xv6%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%86%85%E5%AD%98/&title=xv6如何管理内存"><i class="fab fa-get-pocket fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=https://junrenchen01.github.io/JunrenChen01.github.io/2025/09/09/xv6%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%86%85%E5%AD%98/&title=xv6如何管理内存"><i class="fab fa-reddit fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=https://junrenchen01.github.io/JunrenChen01.github.io/2025/09/09/xv6%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%86%85%E5%AD%98/&title=xv6如何管理内存"><i class="fab fa-stumbleupon fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=https://junrenchen01.github.io/JunrenChen01.github.io/2025/09/09/xv6%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%86%85%E5%AD%98/&title=xv6如何管理内存"><i class="fab fa-digg fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=https://junrenchen01.github.io/JunrenChen01.github.io/2025/09/09/xv6%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%86%85%E5%AD%98/&name=xv6如何管理内存&description="><i class="fab fa-tumblr fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=https://junrenchen01.github.io/JunrenChen01.github.io/2025/09/09/xv6%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%86%85%E5%AD%98/&t=xv6如何管理内存"><i class="fab fa-hacker-news fa-lg" aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+
+    <div id="actions-footer">
+        <a id="menu" class="icon" href="#" onclick="$('#nav-footer').toggle();return false;"><i class="fa-solid fa-bars fa-lg" aria-hidden="true"></i> 菜单</a>
+        
+          <a id="toc" class="icon" href="#" onclick="$('#toc-footer').toggle();return false;"><i class="fa-solid fa-list fa-lg" aria-hidden="true"></i> 目录</a>
+        
+        <a id="share" class="icon" href="#" onclick="$('#share-footer').toggle();return false;"><i class="fa-solid fa-share-alt fa-lg" aria-hidden="true"></i> 分享</a>
+        <a id="top" style="display:none" class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up fa-lg" aria-hidden="true"></i> 返回顶部</a>
+    </div>
+
+  </div>
+</div>
+
+        
+        <footer id="footer">
+  <div class="footer-left">
+    Copyright &copy;
+    
+    
+    2025
+    kenny
+  </div>
+  <div class="footer-right">
+    <nav>
+      <ul>
+        <!--
+       --><li><a href="/JunrenChen01.github.io/">首页</a></li><!--
+     --><!--
+       --><li><a href="/JunrenChen01.github.io/about/">关于</a></li><!--
+     --><!--
+       --><li><a href="/JunrenChen01.github.io/archives/">归档</a></li><!--
+     --><!--
+       --><li><a href="/JunrenChen01.github.io/null">项目</a></li><!--
+     -->
+      </ul>
+    </nav>
+  </div>
+</footer>
+
+    </div>
+    <!-- styles -->
+
+
+
+  <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" onload="this.onload=null;this.rel='stylesheet'"/>
+
+
+    <!-- jquery -->
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js" crossorigin="anonymous"></script>
+
+
+
+
+<!-- clipboard -->
+
+  
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.7/clipboard.min.js" crossorigin="anonymous"></script>
+  
+  <script type="text/javascript">
+  $(function() {
+    // copy-btn HTML
+    var btn = "<span class=\"btn-copy tooltipped tooltipped-sw\" aria-label=\"复制到粘贴板！\">";
+    btn += '<i class="fa-regular fa-clone"></i>';
+    btn += '</span>';
+    // mount it!
+    $(".highlight table").before(btn);
+    var clip = new ClipboardJS('.btn-copy', {
+      text: function(trigger) {
+        return Array.from(trigger.nextElementSibling.querySelectorAll('.code')).reduce((str,it)=>str+it.innerText+'\n','')
+      }
+    });
+    clip.on('success', function(e) {
+      e.trigger.setAttribute('aria-label', "复制成功！");
+      e.clearSelection();
+    })
+  })
+  </script>
+
+
+<script src="/JunrenChen01.github.io/js/main.js"></script>
+
+<!-- search -->
+
+<!-- Baidu Analytics -->
+
+<!-- Cloudflare Analytics -->
+
+<!-- Disqus Comments -->
+
+<!-- utterances Comments -->
+
+</body>
+</html>
