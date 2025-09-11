@@ -9,32 +9,32 @@
     <meta name="description" content="虚拟内存介绍虚拟内存技术，相信学过计算机专业的人都不陌生。简单来讲，它就是将虚拟地址映射到实际的物理地址。使用虚拟内存有许多好处，例如它能够让每个用户进程都感觉自己拥有整一块物理内存（每个进程实现了隔离）、使用虚拟内存的间接映射可以实现懒分配、写时复制功能等等。 在xv6中，启用了虚拟内存机制，它使用RISC-V的Sv39模式，即使用三级索引，具体转化的细节见下图1所示。从图中可以看到，一个虚拟地">
 <meta property="og:type" content="article">
 <meta property="og:title" content="xv6如何管理内存">
-<meta property="og:url" content="https://junrenchen01.github.io/JunrenChen01.github.io/2025/09/09/xv6%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%86%85%E5%AD%98/index.html">
+<meta property="og:url" content="https://junrenchen01.github.io/2025/09/09/xv6%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%86%85%E5%AD%98/index.html">
 <meta property="og:site_name" content="安卓猫的安卓博客">
 <meta property="og:description" content="虚拟内存介绍虚拟内存技术，相信学过计算机专业的人都不陌生。简单来讲，它就是将虚拟地址映射到实际的物理地址。使用虚拟内存有许多好处，例如它能够让每个用户进程都感觉自己拥有整一块物理内存（每个进程实现了隔离）、使用虚拟内存的间接映射可以实现懒分配、写时复制功能等等。 在xv6中，启用了虚拟内存机制，它使用RISC-V的Sv39模式，即使用三级索引，具体转化的细节见下图1所示。从图中可以看到，一个虚拟地">
 <meta property="og:locale" content="zh_CN">
-<meta property="og:image" content="https://junrenchen01.github.io/JunrenChen01.github.io/2025/09/09/xv6%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%86%85%E5%AD%98/photo1.png">
-<meta property="og:image" content="https://junrenchen01.github.io/JunrenChen01.github.io/2025/09/09/xv6%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%86%85%E5%AD%98/codeAnal1.png">
+<meta property="og:image" content="https://junrenchen01.github.io/2025/09/09/xv6%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%86%85%E5%AD%98/photo1.png">
+<meta property="og:image" content="https://junrenchen01.github.io/2025/09/09/xv6%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%86%85%E5%AD%98/codeAnal1.png">
 <meta property="article:published_time" content="2025-09-09T09:05:12.000Z">
 <meta property="article:modified_time" content="2025-09-11T05:07:48.836Z">
 <meta property="article:author" content="kenny">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:image" content="https://junrenchen01.github.io/JunrenChen01.github.io/2025/09/09/xv6%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%86%85%E5%AD%98/photo1.png">
+<meta name="twitter:image" content="https://junrenchen01.github.io/2025/09/09/xv6%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%86%85%E5%AD%98/photo1.png">
     
     
       
         
-          <link rel="shortcut icon" href="/JunrenChen01.github.io/images/favicon.ico">
+          <link rel="shortcut icon" href="/images/favicon.ico">
         
       
       
         
-          <link rel="icon" type="image/png" href="/JunrenChen01.github.io/images/favicon-192x192.png" sizes="192x192">
+          <link rel="icon" type="image/png" href="/images/favicon-192x192.png" sizes="192x192">
         
       
       
         
-          <link rel="apple-touch-icon" sizes="180x180" href="/JunrenChen01.github.io/images/apple-touch-icon.png">
+          <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
         
       
     
@@ -49,7 +49,7 @@
 
     <!-- styles -->
     
-<link rel="stylesheet" href="/JunrenChen01.github.io/css/style.css">
+<link rel="stylesheet" href="/css/style.css">
 
     <!-- persian styles -->
     
@@ -80,13 +80,13 @@
     <span id="nav">
       <ul>
         <!--
-       --><li><a href="/JunrenChen01.github.io/">首页</a></li><!--
+       --><li><a href="/">首页</a></li><!--
      --><!--
-       --><li><a href="/JunrenChen01.github.io/about/">关于</a></li><!--
+       --><li><a href="/about/">关于</a></li><!--
      --><!--
-       --><li><a href="/JunrenChen01.github.io/archives/">归档</a></li><!--
+       --><li><a href="/archives/">归档</a></li><!--
      --><!--
-       --><li><a href="/JunrenChen01.github.io/null">项目</a></li><!--
+       --><li><a href="/null">项目</a></li><!--
      -->
       </ul>
     </span>
@@ -95,7 +95,7 @@
       <ul>
         
         
-        <li><a class="icon" aria-label="下一篇" href="/JunrenChen01.github.io/2025/09/09/xv6-%E9%A1%B9%E7%9B%AE%E4%BB%8B%E7%BB%8D/"><i class="fa-solid fa-chevron-right" aria-hidden="true" onmouseover="$('#i-next').toggle();" onmouseout="$('#i-next').toggle();"></i></a></li>
+        <li><a class="icon" aria-label="下一篇" href="/2025/09/09/xv6-%E9%A1%B9%E7%9B%AE%E4%BB%8B%E7%BB%8D/"><i class="fa-solid fa-chevron-right" aria-hidden="true" onmouseover="$('#i-next').toggle();" onmouseout="$('#i-next').toggle();"></i></a></li>
         
         <li><a class="icon" aria-label="返回顶部" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up" aria-hidden="true" onmouseover="$('#i-top').toggle();" onmouseout="$('#i-top').toggle();"></i></a></li>
         <li><a class="icon" aria-label="分享文章" href="#"><i class="fa-solid fa-share-alt" aria-hidden="true" onmouseover="$('#i-share').toggle();" onmouseout="$('#i-share').toggle();" onclick="$('#share').toggle();return false;"></i></a></li>
@@ -108,17 +108,17 @@
     <br/>
     <div id="share" style="display: none">
       <ul>
-  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=https://junrenchen01.github.io/JunrenChen01.github.io/2025/09/09/xv6%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%86%85%E5%AD%98/"><i class="fab fa-facebook " aria-hidden="true"></i></a></li>
-  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=https://junrenchen01.github.io/JunrenChen01.github.io/2025/09/09/xv6%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%86%85%E5%AD%98/&text=xv6如何管理内存"><i class="fab fa-twitter " aria-hidden="true"></i></a></li>
-  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=https://junrenchen01.github.io/JunrenChen01.github.io/2025/09/09/xv6%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%86%85%E5%AD%98/&title=xv6如何管理内存"><i class="fab fa-linkedin " aria-hidden="true"></i></a></li>
-  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=https://junrenchen01.github.io/JunrenChen01.github.io/2025/09/09/xv6%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%86%85%E5%AD%98/&is_video=false&description=xv6如何管理内存"><i class="fab fa-pinterest " aria-hidden="true"></i></a></li>
-  <li><a class="icon" href="mailto:?subject=xv6如何管理内存&body=Check out this article: https://junrenchen01.github.io/JunrenChen01.github.io/2025/09/09/xv6%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%86%85%E5%AD%98/"><i class="fa-solid fa-envelope " aria-hidden="true"></i></a></li>
-  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=https://junrenchen01.github.io/JunrenChen01.github.io/2025/09/09/xv6%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%86%85%E5%AD%98/&title=xv6如何管理内存"><i class="fab fa-get-pocket " aria-hidden="true"></i></a></li>
-  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=https://junrenchen01.github.io/JunrenChen01.github.io/2025/09/09/xv6%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%86%85%E5%AD%98/&title=xv6如何管理内存"><i class="fab fa-reddit " aria-hidden="true"></i></a></li>
-  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=https://junrenchen01.github.io/JunrenChen01.github.io/2025/09/09/xv6%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%86%85%E5%AD%98/&title=xv6如何管理内存"><i class="fab fa-stumbleupon " aria-hidden="true"></i></a></li>
-  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=https://junrenchen01.github.io/JunrenChen01.github.io/2025/09/09/xv6%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%86%85%E5%AD%98/&title=xv6如何管理内存"><i class="fab fa-digg " aria-hidden="true"></i></a></li>
-  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=https://junrenchen01.github.io/JunrenChen01.github.io/2025/09/09/xv6%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%86%85%E5%AD%98/&name=xv6如何管理内存&description="><i class="fab fa-tumblr " aria-hidden="true"></i></a></li>
-  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=https://junrenchen01.github.io/JunrenChen01.github.io/2025/09/09/xv6%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%86%85%E5%AD%98/&t=xv6如何管理内存"><i class="fab fa-hacker-news " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=https://junrenchen01.github.io/2025/09/09/xv6%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%86%85%E5%AD%98/"><i class="fab fa-facebook " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=https://junrenchen01.github.io/2025/09/09/xv6%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%86%85%E5%AD%98/&text=xv6如何管理内存"><i class="fab fa-twitter " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=https://junrenchen01.github.io/2025/09/09/xv6%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%86%85%E5%AD%98/&title=xv6如何管理内存"><i class="fab fa-linkedin " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=https://junrenchen01.github.io/2025/09/09/xv6%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%86%85%E5%AD%98/&is_video=false&description=xv6如何管理内存"><i class="fab fa-pinterest " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=xv6如何管理内存&body=Check out this article: https://junrenchen01.github.io/2025/09/09/xv6%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%86%85%E5%AD%98/"><i class="fa-solid fa-envelope " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=https://junrenchen01.github.io/2025/09/09/xv6%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%86%85%E5%AD%98/&title=xv6如何管理内存"><i class="fab fa-get-pocket " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=https://junrenchen01.github.io/2025/09/09/xv6%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%86%85%E5%AD%98/&title=xv6如何管理内存"><i class="fab fa-reddit " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=https://junrenchen01.github.io/2025/09/09/xv6%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%86%85%E5%AD%98/&title=xv6如何管理内存"><i class="fab fa-stumbleupon " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=https://junrenchen01.github.io/2025/09/09/xv6%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%86%85%E5%AD%98/&title=xv6如何管理内存"><i class="fab fa-digg " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=https://junrenchen01.github.io/2025/09/09/xv6%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%86%85%E5%AD%98/&name=xv6如何管理内存&description="><i class="fab fa-tumblr " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=https://junrenchen01.github.io/2025/09/09/xv6%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%86%85%E5%AD%98/&t=xv6如何管理内存"><i class="fab fa-hacker-news " aria-hidden="true"></i></a></li>
 </ul>
 
     </div>
@@ -179,7 +179,7 @@
 <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span> PGSIZE 4096 <span class="comment">// 一页的大小，4096字节</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> PGSHIFT 12  <span class="comment">// 用于偏移使用</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> PGROUNDUP(sz)  (((sz)+PGSIZE-1) &amp; ~(PGSIZE-1)) <span class="comment">//用于向上对齐</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> PGROUNDDOWN(a) (((a)) &amp; ~(PGSIZE-1))  <span class="comment">//用于向下对齐</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> PTE_V (1L &lt;&lt; 0) <span class="comment">// PTE的权限V</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> PTE_R (1L &lt;&lt; 1) <span class="comment">// PTE的权限R</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> PTE_W (1L &lt;&lt; 2) <span class="comment">// PTE的权限W</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> PTE_X (1L &lt;&lt; 3) <span class="comment">// PTE的权限X</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> PTE_U (1L &lt;&lt; 4) <span class="comment">// PTE的权限U</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 将物理地址pa右移12位，在左移10位，转化成一个PTE（PPN+Flags，Flags全0）</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> PA2PTE(pa) ((((uint64)pa) &gt;&gt; 12) &lt;&lt; 10)</span></span><br><span class="line"><span class="comment">// 将PTE右移10位，在左移12位，转化成一个物理地址（PPN+Offset，Offset全0）</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> PTE2PA(pte) (((pte) &gt;&gt; 10) &lt;&lt; 12)</span></span><br><span class="line"><span class="comment">// 提取出PTE的权限位Flags，共10位</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> PTE_FLAGS(pte) ((pte) &amp; 0x3FF)</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 代码21～23用于从虚拟地址va中提取3个9位的页表索引</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> PXMASK          0x1FF <span class="comment">// 9 bits</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> PXSHIFT(level)  (PGSHIFT+(9*(level)))</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> PX(level, va) ((((uint64) (va)) &gt;&gt; PXSHIFT(level)) &amp; PXMASK)</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 虚拟地址的最大值，若虚拟地址&gt;=MAXVA则是非法的</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> MAXVA (1L &lt;&lt; (9 + 9 + 9 + 12 - 1))</span></span><br></pre></td></tr></table></figure>
 
 <p>其中code7～11是用于提取PTE的各个权限位。code4～5是非常有用的宏定义，用于定位到此地址所处页的底部和顶部，例如PGROUNDDOWN(0x0001)&#x3D;0x0，PGROUNDUP(0x0001)&#x3D;0x1000，用与和非这两个逻辑运算符实现的代码，非常巧妙！形象的解释可以看下图2所示</p>
-<p><img src="/JunrenChen01.github.io/2025/09/09/xv6%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%86%85%E5%AD%98/codeAnal1.png"></p>
+<p><img src="/2025/09/09/xv6%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%86%85%E5%AD%98/codeAnal1.png"></p>
 <center>图2 PGROUNDUP 和 PGROUNDDOWN </center>
 
 <p>其中code21～23用于提取虚拟地址的三个索引值，例如PX(0, va)获得L0，PX(1, va)获得L1，PX(2, va)获得L2。</p>
@@ -200,13 +200,13 @@
     <div id="nav-footer" style="display: none">
       <ul>
         
-          <li><a href="/JunrenChen01.github.io/">首页</a></li>
+          <li><a href="/">首页</a></li>
         
-          <li><a href="/JunrenChen01.github.io/about/">关于</a></li>
+          <li><a href="/about/">关于</a></li>
         
-          <li><a href="/JunrenChen01.github.io/archives/">归档</a></li>
+          <li><a href="/archives/">归档</a></li>
         
-          <li><a href="/JunrenChen01.github.io/null">项目</a></li>
+          <li><a href="/null">项目</a></li>
         
       </ul>
     </div>
@@ -220,17 +220,17 @@
 
     <div id="share-footer" style="display: none">
       <ul>
-  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=https://junrenchen01.github.io/JunrenChen01.github.io/2025/09/09/xv6%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%86%85%E5%AD%98/"><i class="fab fa-facebook fa-lg" aria-hidden="true"></i></a></li>
-  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=https://junrenchen01.github.io/JunrenChen01.github.io/2025/09/09/xv6%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%86%85%E5%AD%98/&text=xv6如何管理内存"><i class="fab fa-twitter fa-lg" aria-hidden="true"></i></a></li>
-  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=https://junrenchen01.github.io/JunrenChen01.github.io/2025/09/09/xv6%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%86%85%E5%AD%98/&title=xv6如何管理内存"><i class="fab fa-linkedin fa-lg" aria-hidden="true"></i></a></li>
-  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=https://junrenchen01.github.io/JunrenChen01.github.io/2025/09/09/xv6%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%86%85%E5%AD%98/&is_video=false&description=xv6如何管理内存"><i class="fab fa-pinterest fa-lg" aria-hidden="true"></i></a></li>
-  <li><a class="icon" href="mailto:?subject=xv6如何管理内存&body=Check out this article: https://junrenchen01.github.io/JunrenChen01.github.io/2025/09/09/xv6%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%86%85%E5%AD%98/"><i class="fa-solid fa-envelope fa-lg" aria-hidden="true"></i></a></li>
-  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=https://junrenchen01.github.io/JunrenChen01.github.io/2025/09/09/xv6%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%86%85%E5%AD%98/&title=xv6如何管理内存"><i class="fab fa-get-pocket fa-lg" aria-hidden="true"></i></a></li>
-  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=https://junrenchen01.github.io/JunrenChen01.github.io/2025/09/09/xv6%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%86%85%E5%AD%98/&title=xv6如何管理内存"><i class="fab fa-reddit fa-lg" aria-hidden="true"></i></a></li>
-  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=https://junrenchen01.github.io/JunrenChen01.github.io/2025/09/09/xv6%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%86%85%E5%AD%98/&title=xv6如何管理内存"><i class="fab fa-stumbleupon fa-lg" aria-hidden="true"></i></a></li>
-  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=https://junrenchen01.github.io/JunrenChen01.github.io/2025/09/09/xv6%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%86%85%E5%AD%98/&title=xv6如何管理内存"><i class="fab fa-digg fa-lg" aria-hidden="true"></i></a></li>
-  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=https://junrenchen01.github.io/JunrenChen01.github.io/2025/09/09/xv6%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%86%85%E5%AD%98/&name=xv6如何管理内存&description="><i class="fab fa-tumblr fa-lg" aria-hidden="true"></i></a></li>
-  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=https://junrenchen01.github.io/JunrenChen01.github.io/2025/09/09/xv6%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%86%85%E5%AD%98/&t=xv6如何管理内存"><i class="fab fa-hacker-news fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=https://junrenchen01.github.io/2025/09/09/xv6%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%86%85%E5%AD%98/"><i class="fab fa-facebook fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=https://junrenchen01.github.io/2025/09/09/xv6%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%86%85%E5%AD%98/&text=xv6如何管理内存"><i class="fab fa-twitter fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=https://junrenchen01.github.io/2025/09/09/xv6%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%86%85%E5%AD%98/&title=xv6如何管理内存"><i class="fab fa-linkedin fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=https://junrenchen01.github.io/2025/09/09/xv6%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%86%85%E5%AD%98/&is_video=false&description=xv6如何管理内存"><i class="fab fa-pinterest fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=xv6如何管理内存&body=Check out this article: https://junrenchen01.github.io/2025/09/09/xv6%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%86%85%E5%AD%98/"><i class="fa-solid fa-envelope fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=https://junrenchen01.github.io/2025/09/09/xv6%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%86%85%E5%AD%98/&title=xv6如何管理内存"><i class="fab fa-get-pocket fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=https://junrenchen01.github.io/2025/09/09/xv6%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%86%85%E5%AD%98/&title=xv6如何管理内存"><i class="fab fa-reddit fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=https://junrenchen01.github.io/2025/09/09/xv6%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%86%85%E5%AD%98/&title=xv6如何管理内存"><i class="fab fa-stumbleupon fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=https://junrenchen01.github.io/2025/09/09/xv6%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%86%85%E5%AD%98/&title=xv6如何管理内存"><i class="fab fa-digg fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=https://junrenchen01.github.io/2025/09/09/xv6%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%86%85%E5%AD%98/&name=xv6如何管理内存&description="><i class="fab fa-tumblr fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=https://junrenchen01.github.io/2025/09/09/xv6%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%86%85%E5%AD%98/&t=xv6如何管理内存"><i class="fab fa-hacker-news fa-lg" aria-hidden="true"></i></a></li>
 </ul>
 
     </div>
@@ -260,13 +260,13 @@
     <nav>
       <ul>
         <!--
-       --><li><a href="/JunrenChen01.github.io/">首页</a></li><!--
+       --><li><a href="/">首页</a></li><!--
      --><!--
-       --><li><a href="/JunrenChen01.github.io/about/">关于</a></li><!--
+       --><li><a href="/about/">关于</a></li><!--
      --><!--
-       --><li><a href="/JunrenChen01.github.io/archives/">归档</a></li><!--
+       --><li><a href="/archives/">归档</a></li><!--
      --><!--
-       --><li><a href="/JunrenChen01.github.io/null">项目</a></li><!--
+       --><li><a href="/null">项目</a></li><!--
      -->
       </ul>
     </nav>
@@ -314,7 +314,7 @@
   </script>
 
 
-<script src="/JunrenChen01.github.io/js/main.js"></script>
+<script src="/js/main.js"></script>
 
 <!-- search -->
 
