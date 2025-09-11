@@ -18,9 +18,9 @@
 <meta property="og:image" content="https://junrenchen01.github.io/2025/09/09/xv6%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%86%85%E5%AD%98/paLayout.png">
 <meta property="og:image" content="https://junrenchen01.github.io/2025/09/09/xv6%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%86%85%E5%AD%98/paLayout2.png">
 <meta property="og:image" content="https://junrenchen01.github.io/2025/09/09/xv6%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%86%85%E5%AD%98/memStru.png">
-<meta property="og:image" content="https://junrenchen01.github.io/vaLayout.png">
+<meta property="og:image" content="https://junrenchen01.github.io/2025/09/09/xv6%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%86%85%E5%AD%98/vaLayout.png">
 <meta property="article:published_time" content="2025-09-09T09:05:12.000Z">
-<meta property="article:modified_time" content="2025-09-11T09:35:03.332Z">
+<meta property="article:modified_time" content="2025-09-11T09:36:31.586Z">
 <meta property="article:author" content="kenny">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:image" content="https://junrenchen01.github.io/2025/09/09/xv6%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%86%85%E5%AD%98/photo1.png">
@@ -216,7 +216,7 @@
 <hr>
 <h2 id="xv6的内存管理"><a href="#xv6的内存管理" class="headerlink" title="xv6的内存管理"></a>xv6的内存管理</h2><p>接下来要把内存剩余的故事讲完整！我们需要知道xv6是使用了虚拟内存技术的，xv6分为用户态和内核态，每个用户进程都有自己的页表，内核则单独有一个自己使用的页表。那么我们从内核层面和用户级层面两个维度观察虚拟内存的使用。</p>
 <h3 id="内核层面"><a href="#内核层面" class="headerlink" title="内核层面"></a>内核层面</h3><p>观察下图左边部分，我们从下往上看。我们已知，在物理地址的0到KERNBASE这一块内存空间里的东西是qemu设置好的，所以内核页表做直接映射，例如虚拟地址0x0C000000映射到地址0x0C000000。同理，物理地址KERNBASE～end这一块内存空间有内核代码段、内核数据段，所以内核页表对这两页也做直接映射。</p>
-<p><img src="/vaLayout.png"></p>
+<p><img src="/2025/09/09/xv6%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%86%85%E5%AD%98/vaLayout.png"></p>
 <center>图6 内核层面虚拟内存布局（来源于教材）</center>
 
 <p>继续看图6，从上往下看虚拟地址，Trampoline（用于从用户态切换到内核态，暂不细讲）这一页将被映射到物理内存空间的end～PHYSTOP，然后是Guard page和一个内核栈Kstack，一个用户进程有一个属于自己的内核栈。</p>
