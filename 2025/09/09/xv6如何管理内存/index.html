@@ -21,7 +21,7 @@
 <meta property="og:image" content="https://junrenchen01.github.io/2025/09/09/xv6%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%86%85%E5%AD%98/vaLayout.png">
 <meta property="og:image" content="https://junrenchen01.github.io/2025/09/09/xv6%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%86%85%E5%AD%98/userVaLayout.png">
 <meta property="article:published_time" content="2025-09-09T09:05:12.000Z">
-<meta property="article:modified_time" content="2025-09-12T06:46:12.512Z">
+<meta property="article:modified_time" content="2025-09-12T07:00:38.583Z">
 <meta property="article:author" content="kenny">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:image" content="https://junrenchen01.github.io/2025/09/09/xv6%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%86%85%E5%AD%98/photo1.png">
@@ -130,7 +130,7 @@
     
     
       <div id="toc">
-        <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E8%99%9A%E6%8B%9F%E5%86%85%E5%AD%98%E4%BB%8B%E7%BB%8D"><span class="toc-number">1.</span> <span class="toc-text">虚拟内存介绍</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#xv6%E7%9A%84%E7%89%A9%E7%90%86%E5%86%85%E5%AD%98%E5%88%86%E9%85%8D"><span class="toc-number">2.</span> <span class="toc-text">xv6的物理内存分配</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#xv6%E7%9A%84%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86"><span class="toc-number">3.</span> <span class="toc-text">xv6的内存管理</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%86%85%E6%A0%B8%E8%BF%9B%E7%A8%8B"><span class="toc-number">3.1.</span> <span class="toc-text">内核进程</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%94%A8%E6%88%B7%E7%BA%A7%E8%BF%9B%E7%A8%8B"><span class="toc-number">3.2.</span> <span class="toc-text">用户级进程</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%B0%8F%E7%BB%93"><span class="toc-number">4.</span> <span class="toc-text">小结</span></a></li></ol>
+        <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E8%99%9A%E6%8B%9F%E5%86%85%E5%AD%98%E4%BB%8B%E7%BB%8D"><span class="toc-number">1.</span> <span class="toc-text">虚拟内存介绍</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#xv6%E5%86%85%E5%AD%98%E7%9B%B8%E5%85%B3%E7%9A%84%E4%BB%A3%E7%A0%81"><span class="toc-number">2.</span> <span class="toc-text">xv6内存相关的代码</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#xv6%E7%9A%84%E7%89%A9%E7%90%86%E5%86%85%E5%AD%98%E5%88%86%E9%85%8D"><span class="toc-number">3.</span> <span class="toc-text">xv6的物理内存分配</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#xv6%E7%9A%84%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86"><span class="toc-number">4.</span> <span class="toc-text">xv6的内存管理</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%86%85%E6%A0%B8%E8%BF%9B%E7%A8%8B"><span class="toc-number">4.1.</span> <span class="toc-text">内核进程</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%94%A8%E6%88%B7%E7%BA%A7%E8%BF%9B%E7%A8%8B"><span class="toc-number">4.2.</span> <span class="toc-text">用户级进程</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%B0%8F%E7%BB%93"><span class="toc-number">5.</span> <span class="toc-text">小结</span></a></li></ol>
       </div>
     
   </span>
@@ -191,6 +191,9 @@
 <p>其中code21～23用于提取虚拟地址的三个索引值，例如PX(0, va)获得L0，PX(1, va)获得L1，PX(2, va)获得L2。</p>
 <p>code26是最大的虚拟地址，xv6允许的地址范围从$0～2^{38}-1$ ，共$2^{38}B$，和图1中的理论值不一样，可以理解为Offset少了1位，暂时不明确出于什么原因这样设置。</p>
 <hr>
+<h2 id="xv6内存相关的代码"><a href="#xv6内存相关的代码" class="headerlink" title="xv6内存相关的代码"></a>xv6内存相关的代码</h2><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">xv6-riscv/kernel/riscv.h  <span class="comment">//宏定义了PTE权限、页大小、虚拟内存大小、地址提取等</span></span><br><span class="line">xv6-riscv/kernel/memlayout.h  <span class="comment">//xv6的内存布局，宏定义了一些地址</span></span><br><span class="line"></span><br><span class="line">xv6-riscv/kernel/vm.c  <span class="comment">//虚拟内存相关的所有函数</span></span><br><span class="line">xv6-riscv/kernel/kalloc.c  <span class="comment">//物理内存相关的所有函数</span></span><br><span class="line">xv6-riscv/kernel/exec.c  <span class="comment">//exec()系统调用</span></span><br></pre></td></tr></table></figure>
+
+<hr>
 <h2 id="xv6的物理内存分配"><a href="#xv6的物理内存分配" class="headerlink" title="xv6的物理内存分配"></a>xv6的物理内存分配</h2><p>我们首先看一下xv6的物理内存是怎么分配的，见下图3所示。</p>
 <img src="paLayout.png" style="zoom: 40%;" />
 
@@ -233,6 +236,7 @@
 <p>proc_mapstacks()函数为每个进程的内核栈分配物理空间并做映射。code6做循环，在xv6中，NPROC&#x3D;64，也就是说进程数量固定为64个，有关进程的内容在讲进程时会详细讲解。在code6～12，在循环中，会分配一页物理内存pa，然后根据进程的编号得到虚拟地址va，最后将va和pa做映射。</p>
 <p>大家可以发现，函数里没对Guard page做处理啊！这是对的，不做映射说明这页内存不可访问，也就是启到了Guard page的作用。</p>
 <p>至此，内核的虚拟内存部分就讲完了。</p>
+<hr>
 <h3 id="用户级进程"><a href="#用户级进程" class="headerlink" title="用户级进程"></a>用户级进程</h3><p>用户进程的虚拟内存空间如图7所示，从下往上看依次是代码段、数据段、一页guard page、一页栈stack、堆、trapframe、trampoline。其中trampoline和trapframe是用于从用户态进程切换到内核进程使用的，在后续讲解进程时在详细介绍。</p>
 <p><img src="/2025/09/09/xv6%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%86%85%E5%AD%98/userVaLayout.png"></p>
 <center>图8 用户进程的虚拟内存布局（来源于教材）</center>
@@ -258,6 +262,7 @@
 <p>回到代码块1，那么代码块1：code21-33这个循环就将ELF中的代码段、数据段依次加载进了用户进程的虚拟内存空间中（从虚拟地址0开始）。</p>
 <p>最后，就是栈空间，xv6只分配1页的栈空间给用户进程。栈空间的分配在代码块1：code42-49处，在虚拟地址sz处，继续分配一页guard page和一页栈stack。代码块1：code43处调用uvmalloc()函数首先分配两页的空间，然后在代码块1：code46处调用uvmclear()函数将下面那一页的权限位进行修改，不允许用户进程访问，以此作为guard page。uvmclear()函数详细代码可见代码块3：code28-37。</p>
 <p>那么至此，用户进程的内存分配情况也全部讲完了。</p>
+<hr>
 <h2 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h2><p>上述内容就是xv6内存的全部了，因为个人能力有限，有些地方可能讲的不够透彻或是理解有误，恳请大家原谅。有需要纠错的地方大家只管发邮件给我就行，万分感激！！！</p>
 
   </div>
@@ -286,7 +291,7 @@
     
     
       <div id="toc-footer" style="display: none">
-        <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E8%99%9A%E6%8B%9F%E5%86%85%E5%AD%98%E4%BB%8B%E7%BB%8D"><span class="toc-number">1.</span> <span class="toc-text">虚拟内存介绍</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#xv6%E7%9A%84%E7%89%A9%E7%90%86%E5%86%85%E5%AD%98%E5%88%86%E9%85%8D"><span class="toc-number">2.</span> <span class="toc-text">xv6的物理内存分配</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#xv6%E7%9A%84%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86"><span class="toc-number">3.</span> <span class="toc-text">xv6的内存管理</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%86%85%E6%A0%B8%E8%BF%9B%E7%A8%8B"><span class="toc-number">3.1.</span> <span class="toc-text">内核进程</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%94%A8%E6%88%B7%E7%BA%A7%E8%BF%9B%E7%A8%8B"><span class="toc-number">3.2.</span> <span class="toc-text">用户级进程</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%B0%8F%E7%BB%93"><span class="toc-number">4.</span> <span class="toc-text">小结</span></a></li></ol>
+        <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E8%99%9A%E6%8B%9F%E5%86%85%E5%AD%98%E4%BB%8B%E7%BB%8D"><span class="toc-number">1.</span> <span class="toc-text">虚拟内存介绍</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#xv6%E5%86%85%E5%AD%98%E7%9B%B8%E5%85%B3%E7%9A%84%E4%BB%A3%E7%A0%81"><span class="toc-number">2.</span> <span class="toc-text">xv6内存相关的代码</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#xv6%E7%9A%84%E7%89%A9%E7%90%86%E5%86%85%E5%AD%98%E5%88%86%E9%85%8D"><span class="toc-number">3.</span> <span class="toc-text">xv6的物理内存分配</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#xv6%E7%9A%84%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86"><span class="toc-number">4.</span> <span class="toc-text">xv6的内存管理</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%86%85%E6%A0%B8%E8%BF%9B%E7%A8%8B"><span class="toc-number">4.1.</span> <span class="toc-text">内核进程</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%94%A8%E6%88%B7%E7%BA%A7%E8%BF%9B%E7%A8%8B"><span class="toc-number">4.2.</span> <span class="toc-text">用户级进程</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%B0%8F%E7%BB%93"><span class="toc-number">5.</span> <span class="toc-text">小结</span></a></li></ol>
       </div>
     
 
