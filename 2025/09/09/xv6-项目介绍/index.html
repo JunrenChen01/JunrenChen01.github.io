@@ -6,15 +6,15 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="HandheldFriendly" content="True">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
-    <meta name="description" content="简介Hello！这个项目来源于MIT 6.1810这个课程实验，本人也完成了所有的9个实验。因此，我希望能够通过写技术博客的方式，将我的理解梳理并记录下来，以此加深我对OS的理解，同时也能够分享出去。 虽然现在也有不少关于6.1810的文章，但它们大多数聚焦于实验。而我会更多的讲解xv6这个操作系统，以概念+源码的方式来理解OS，对于实验的内容不会具体的去讲解。 本人会从以下几个方面去理解xv6这">
+    <meta name="description" content="简介Hello！这个项目来源于MIT 6.1810这个课程实验，本人也完成了所有的9个实验。因此，我希望通过写技术博客的方式，将我的理解梳理并记录下来，以此加深我对OS的理解，同时也分享出去。 现在网上也有不少关于xv6的文章，但它们有的过于聚焦实验，有的内容过于老旧。我会更多的讲解xv6这个操作系统，以概念+源码的方式来理解OS，对于实验的内容不会做具体的讲解。 后续会有如下几个主题：xv6的内">
 <meta property="og:type" content="article">
 <meta property="og:title" content="xv6 项目介绍">
 <meta property="og:url" content="https://junrenchen01.github.io/2025/09/09/xv6-%E9%A1%B9%E7%9B%AE%E4%BB%8B%E7%BB%8D/index.html">
 <meta property="og:site_name" content="安卓猫的安卓博客">
-<meta property="og:description" content="简介Hello！这个项目来源于MIT 6.1810这个课程实验，本人也完成了所有的9个实验。因此，我希望能够通过写技术博客的方式，将我的理解梳理并记录下来，以此加深我对OS的理解，同时也能够分享出去。 虽然现在也有不少关于6.1810的文章，但它们大多数聚焦于实验。而我会更多的讲解xv6这个操作系统，以概念+源码的方式来理解OS，对于实验的内容不会具体的去讲解。 本人会从以下几个方面去理解xv6这">
+<meta property="og:description" content="简介Hello！这个项目来源于MIT 6.1810这个课程实验，本人也完成了所有的9个实验。因此，我希望通过写技术博客的方式，将我的理解梳理并记录下来，以此加深我对OS的理解，同时也分享出去。 现在网上也有不少关于xv6的文章，但它们有的过于聚焦实验，有的内容过于老旧。我会更多的讲解xv6这个操作系统，以概念+源码的方式来理解OS，对于实验的内容不会做具体的讲解。 后续会有如下几个主题：xv6的内">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2025-09-09T07:23:08.000Z">
-<meta property="article:modified_time" content="2025-09-09T08:40:46.416Z">
+<meta property="article:modified_time" content="2025-09-12T11:34:52.511Z">
 <meta property="article:author" content="kenny">
 <meta name="twitter:card" content="summary">
     
@@ -162,10 +162,11 @@
   
 
   <div class="content e-content" itemprop="articleBody">
-    <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>Hello！这个项目来源于MIT 6.1810这个课程实验，本人也完成了所有的9个实验。因此，我希望能够通过写技术博客的方式，将我的理解梳理并记录下来，以此加深我对OS的理解，同时也能够分享出去。</p>
-<p>虽然现在也有不少关于6.1810的文章，但它们大多数聚焦于实验。而我会更多的讲解xv6这个操作系统，以概念+源码的方式来理解OS，对于实验的内容不会具体的去讲解。</p>
-<p>本人会从以下几个方面去理解xv6这个操作系统：xv6的内存是如何管理的、xv6中的进程以及进程的切换、xv6的网络如何实现、xv6的文件系统如何构建。</p>
-<p>xv6是一个教学用的、开源的、简单的一个OS，非常适合作为学习OS的切入点。MIT 6.1810这个项目可以点击<a target="_blank" rel="noopener" href="https://pdos.csail.mit.edu/6.1810/2025/">这里</a>访问MIT的课程链接，xv6的github代码地址可以点击<a target="_blank" rel="noopener" href="https://github.com/mit-pdos/xv6-riscv">这里</a>进行访问。目前课程使用的xv6版本是使用RISC-V版本的xv6，它运行在QEMU模拟器下，如何安装环境可以在MIT课程网页中找到指引，所以在这里就不赘述了（安装过程也比较简单）。</p>
+    <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>Hello！这个项目来源于MIT 6.1810这个课程实验，本人也完成了所有的9个实验。因此，我希望通过写技术博客的方式，将我的理解梳理并记录下来，以此加深我对OS的理解，同时也分享出去。</p>
+<p>现在网上也有不少关于xv6的文章，但它们有的过于聚焦实验，有的内容过于老旧。我会更多的讲解xv6这个操作系统，以概念+源码的方式来理解OS，对于实验的内容不会做具体的讲解。</p>
+<p>后续会有如下几个主题：xv6的内存是如何管理的、xv6中的进程以及进程的切换、xv6的网络如何实现、xv6的文件系统如何构建。</p>
+<p>xv6是一个教学用的、开源的、简单的一个类Unix OS，非常适合作为学习OS的切入点。MIT 6.1810课程链接点击<a target="_blank" rel="noopener" href="https://pdos.csail.mit.edu/6.1810/2025/">这里</a>访问，xv6的github代码地址点击<a target="_blank" rel="noopener" href="https://github.com/mit-pdos/xv6-riscv">这里</a>访问。目前课程使用的xv6版本是RISC-V版本的xv6，它运行在QEMU模拟器下，如何安装环境可以点击<a target="_blank" rel="noopener" href="https://pdos.csail.mit.edu/6.1810/2025/tools.html">这里</a>访问。</p>
+<p>另外，关于xv6的英文材料点击<a target="_blank" rel="noopener" href="https://pdos.csail.mit.edu/6.1810/2025/xv6/book-riscv-rev5.pdf">这里</a>获取，xv6源码书籍版点击<a target="_blank" rel="noopener" href="https://pdos.csail.mit.edu/6.1810/2025/xv6/xv6-src-booklet-rev5.pdf">这里</a>获取。其他一些材料，例如RISC-V的指令集官方文档等可以点击<a target="_blank" rel="noopener" href="https://pdos.csail.mit.edu/6.1810/2025/reference.html">这里</a>按自己需要下载。</p>
 <p>好！那就开始吧！</p>
 
   </div>
